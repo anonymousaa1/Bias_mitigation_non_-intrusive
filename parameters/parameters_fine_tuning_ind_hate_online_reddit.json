@@ -1,0 +1,18 @@
+{
+    "epoch": 20,
+    "batch_size": 32,
+    "train_learning_rate": 0.001,
+    "target": "idi",
+    "threshold": 0.05,
+    "privileged_label": 0,
+    "gamma": 1,
+    "baseline_metric_ind": 0.085378,
+    "baseline_fpr_train": 0.036589,
+    "baseline_fnr_train": 0.089946,
+    "baseline_metric_group": 0.0802040416,
+    "train_data": "dataset/hate_speech_online/reddit/train.csv",
+    "test_data": "dataset/hate_speech_online/reddit/test.csv",
+    "train_data_identity": "dataset/hate_speech_online/reddit/train_identity.csv",
+    "test_data_identity": "dataset/hate_speech_online/reddit/test_identity.csv",
+    "save_dir": "models/hate_speech_online_reddit/"
+}

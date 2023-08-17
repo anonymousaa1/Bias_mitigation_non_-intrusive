@@ -1,0 +1,14 @@
+{
+    "model_name_or_path": "./output/wiki/",
+    "train_file": "dataset/wiki/train.csv",
+    "validation_file": "dataset/wiki/test.csv",
+    "test_file": "dataset/wiki/test.csv",
+    "do_predict": "True",
+    "max_seq_length": 128,
+    "per_device_train_batch_size": 16,
+    "learning_rate": 2e-5,
+    "num_train_epochs": 3,
+    "output_dir": "./output/test/",
+    "overwrite_output_dir": "true",
+    "fp16": "true"
+}

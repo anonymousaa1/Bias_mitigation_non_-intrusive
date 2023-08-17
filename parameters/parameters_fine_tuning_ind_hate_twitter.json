@@ -1,0 +1,18 @@
+{
+    "epoch": 20,
+    "batch_size": 98,
+    "train_learning_rate": 0.001,
+    "target": "idi",
+    "privileged_label": 0,
+    "threshold": 0.1,
+    "gamma": 1,
+    "baseline_metric_ind": 0.12832011,
+    "baseline_fpr_train": 0.01483994,
+    "baseline_fnr_train": 0.01597161,
+    "baseline_metric_group": 0.1203672622,
+    "train_data": "dataset/hate_speech_twitter/train.csv",
+    "test_data": "dataset/hate_speech_twitter/test.csv",
+    "train_data_identity": "dataset/hate_speech_twitter/train_identity.csv",
+    "test_data_identity": "dataset/hate_speech_twitter/test_identity.csv",
+    "save_dir": "models/hate_speech_twitter/"
+}
