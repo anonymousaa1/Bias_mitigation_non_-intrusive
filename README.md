@@ -1,265 +1,112 @@
-<!---
-Copyright 2020 The HuggingFace Team. All rights reserved.
+# Debias on Transformer Based Models 
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+[comment]: <> (### Non-intrusive Bias Mitigation for Language Models with Statistical Confidence)
+## Text classification task
 
-    http://www.apache.org/licenses/LICENSE-2.0
+We get the following results including accuracy, F1 and socres of bias degree on the benchmark datasets:
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
+| Dataset  | Accuracy                       | F1 score      | Group Bias Degree | Individual Bias Degree |
+|-------|------------------------------|-------------|---------------|---------------|
+| WhiteForumHate  | 91.22%                | 0.9506       | 0.0749         | 0.1962| 
+| TwitterHate | 91.88%                     |0.9155       | 0.2369        | 0.1414| 
+| GabHate  | 87.34%                 | 0.8585 | 0.1485          | 0.3057| 
+| RedditHate | 88.80%      | 0.8098| 0.1060          | 0.1021| 
+| GabTwitterHate   | 77.93%                | 0.8269 | 0.0876       | 0.2361| 
 
-# Text classification examples
+## dataset
+1. Hate speech dataset from a white supremacist forum (WhiteForumHate) --> dataset/hate_sppech_white/
+2. Hate speech dataset from Twitter posts (TwitterHate) --> dataset/hate_speech_twitter/
+3. Hate speech dataset from Gab posts (GabHate) --> dataset/hate_speech_online/gab/
+4. Hate speech dataset form Reddit posts (RedditHate) --> dataset/hate_speech_online/reddit/
+5. Hate and offensive speech from Twitter and Gab posts (TwitterGabHate) --> dataset/hate_speech_offensive/
 
-## GLUE tasks
-
-Based on the script [`run_glue.py`](https://github.com/huggingface/transformers/blob/main/examples/pytorch/text-classification/run_glue.py).
-
-Fine-tuning the library models for sequence classification on the GLUE benchmark: [General Language Understanding
-Evaluation](https://gluebenchmark.com/). This script can fine-tune any of the models on the [hub](https://huggingface.co/models)
-and can also be used for a dataset hosted on our [hub](https://huggingface.co/datasets) or your own data in a csv or a JSON file
-(the script might need some tweaks in that case, refer to the comments inside for help).
-
-GLUE is made up of a total of 9 different tasks. Here is how to run the script on one of them:
-
+## fine-tune pre-trained model based on given dataset
+e.g. fine-tune bert-base-cased pretrained model with TwitterGabHate dataset
 ```bash
-export TASK_NAME=mrpc
-
-python run_glue.py \
-  --model_name_or_path bert-base-cased \
-  --task_name $TASK_NAME \
-  --do_train \
-  --do_eval \
-  --max_seq_length 128 \
-  --per_device_train_batch_size 32 \
-  --learning_rate 2e-5 \
-  --num_train_epochs 3 \
-  --output_dir /tmp/$TASK_NAME/
+python main_test.py parameters/base_parameters_train.json
+```
+--> parameters/base_parameters_trian.json for bert-base-cased model: 
+```bash
+    "model_name_or_path": "bert-base-cased",  # name of pre-trained model
+    "train_file": "dataset/hate_speech_offensive/train.csv",
+    "validation_file": "dataset/hate_speech_offensive/test.csv",
+    "test_file": "dataset/hate_speech_offensive/test.csv",
+    "do_train": "True",
+    "do_predict": "True",
+    "max_seq_length": 128,
+    "per_device_train_batch_size": 32,
+    "learning_rate": 2e-5,
+    "num_train_epochs": 3,
+    "output_dir": "./output/hate_speech_offensive32/",
+    "overwrite_output_dir": "true"
+```
+--> parameters/base_parameters_trian.json for llama model: 
+```bash
+{
+    "model_name_or_path": "meta-llama/Llama-2-7b-hf",
+    "train_file": "dataset/hate_speech_offensive/train.csv",
+    "validation_file": "dataset/hate_speech_offensive/test.csv",
+    "test_file": "dataset/hate_speech_offensive/test.csv",
+    "cache_dir": "/root/autodl-tmp/mdzhang/tmp",
+    "do_train": "True",
+    "do_predict": "True",
+    "max_seq_length": 128,
+    "per_device_train_batch_size": 32,
+    "learning_rate": 2e-5,
+    "num_train_epochs": 3,
+    "output_dir": "./output/test/",
+    "overwrite_output_dir": "true"
+}
 ```
 
-where task name can be one of cola, sst2, mrpc, stsb, qqp, mnli, qnli, rte, wnli.
-
-We get the following results on the dev set of the benchmark with the previous commands (with an exception for MRPC and
-WNLI which are tiny and where we used 5 epochs instead of 3). Trainings are seeded so you should obtain the same
-results with PyTorch 1.6.0 (and close results with different versions), training times are given for information (a
-single Titan RTX was used):
-
-| Task  | Metric                       | Result      | Training time |
-|-------|------------------------------|-------------|---------------|
-| CoLA  | Matthews corr                | 56.53       | 3:17          |
-| SST-2 | Accuracy                     | 92.32       | 26:06         |
-| MRPC  | F1/Accuracy                  | 88.85/84.07 | 2:21          |
-| STS-B | Pearson/Spearman corr.       | 88.64/88.48 | 2:13          |
-| QQP   | Accuracy/F1                  | 90.71/87.49 | 2:22:26       |
-| MNLI  | Matched acc./Mismatched acc. | 83.91/84.10 | 2:35:23       |
-| QNLI  | Accuracy                     | 90.66       | 40:57         |
-| RTE   | Accuracy                     | 65.70       | 57            |
-| WNLI  | Accuracy                     | 56.34       | 24            |
-
-Some of these results are significantly different from the ones reported on the test set of GLUE benchmark on the
-website. For QQP and WNLI, please refer to [FAQ #12](https://gluebenchmark.com/faq) on the website.
-
-The following example fine-tunes BERT on the `imdb` dataset hosted on our [hub](https://huggingface.co/datasets):
-
+## debias fine-tuned model
+debias fine-tuned model with debias adapter
 ```bash
-python run_glue.py \
-  --model_name_or_path bert-base-cased \
-  --dataset_name imdb  \
-  --do_train \
-  --do_predict \
-  --max_seq_length 128 \
-  --per_device_train_batch_size 32 \
-  --learning_rate 2e-5 \
-  --num_train_epochs 3 \
-  --output_dir /tmp/imdb/
+python main_test.py parameters/base_parameters_hate.json parameters/parameters_fine_tuning_ind_hate.json
 ```
-Using --fp16 for acceleration 
-
-Train Bert based model on "imdb" dataset
+-->parameters/base_parameters_hate.json
 ```bash
-python3 run_glue.py \
-  --model_name_or_path bert-base-cased \
-  --dataset_name imdb \
-  --do_train \
-  --do_predict \
-  --max_seq_length 128 \
-  --per_device_train_batch_size 32 \
-  --learning_rate 2e-5 \
-  --num_train_epochs 3 \
-  --output_dir ./output/imdb32/ \
-  --overwrite_output_dir true \
-  --fp16
+    "model_name_or_path": "./output/hate_speech_white/",  # path of saved model
+    "train_file": "dataset/hate_speech_white/train.csv",
+    "validation_file": "dataset/hate_speech_white/test.csv",
+    "test_file": "dataset/hate_speech_white/test.csv",
+    "max_seq_length": 128,
+    "per_device_train_batch_size": 32,
+    "learning_rate": 2e-5,
+    "num_train_epochs": 3,
+    "output_dir": "./output/test/",
+    "overwrite_output_dir": "true",
+    "fp16": "true"
 ```
-Training Bert based model on "GLUE-mrpc" dataset
+-->orig parameters/parameters_fine_tuning_ind_hate.json
 ```bash
-python3 run_glue.py \
-  --model_name_or_path bert-base-cased \
-  --task_name mrpc \
-  --do_train \
-  --do_predict \
-  --max_seq_length 128 \
-  --per_device_train_batch_size 32 \
-  --learning_rate 2e-5 \
-  --num_train_epochs 3 \
-  --output_dir ./output/mrpc/ \
-  --overwrite_output_dir \
-  --fp16
-```
-Testing saved model on "imdb" dataset
-```bash
-python3 run_glue.py \
-  --model_name_or_path ./output/imdb32/ \
-  --dataset_name imdb \
-  --do_predict \
-  --max_seq_length 128 \
-  --per_device_train_batch_size 32 \
-  --learning_rate 2e-5 \
-  --num_train_epochs 3 \
-  --output_dir ./output/test/ \
-  --overwrite_output_dir true \
-  --fp16
+    "epoch": 20,
+    "batch_size": 98,
+    "train_learning_rate": 0.001,
+    "target": "idi",
+    "privileged_label": 1,
+    "threshold": 0.1,
+    "gamma": 1,
+    "baseline_metric_ind": 0.141135108,
+    "baseline_fpr_train": 0.05918619,
+    "baseline_fnr_train": 0.006885197,
+    "baseline_metric_group": 0.0387693241,
+    "train_data": "dataset/hate_speech_white/train.csv",
+    "test_data": "dataset/hate_speech_white/test.csv",
+    "train_data_identity": "dataset/hate_speech_white/train_identity.csv",
+    "test_data_identity": "dataset/hate_speech_white/test_identity.csv",
+    "save_dir": "models/hate_speech_white/"
 ```
 
-Testing fairness of saved model on "imdb" dataset\
-  --do_predict \
+-->parameters/parameters_fine_tuning_ind_hate.json
 ```bash
-python3 test_fairness.py \
-  --model_name_or_path ./output/imdb32/ \
-  --dataset_name imdb \
-  --do_predict \
-  --max_seq_length 128 \
-  --per_device_train_batch_size 32 \
-  --learning_rate 2e-5 \
-  --num_train_epochs 3 \
-  --output_dir ./output/test/ \
-  --overwrite_output_dir true \
-  --fp16
+    "target": "idi",
+    "threshold": 0.1,
+    "baseline_metric": "dataset/hate_speech_white/baseline_metric.jsonl",
+    "save_dir": "models/hate_speech_white/",
+    "gamma": 1,
+    "epoch": 20,
+    "batch_size": 98,
+    "train_learning_rate": 0.001,
 ```
 
-> If your model classification head dimensions do not fit the number of labels in the dataset, you can specify `--ignore_mismatched_sizes` to adapt it.
-
-
-### Mixed precision training
-
-If you have a GPU with mixed precision capabilities (architecture Pascal or more recent), you can use mixed precision
-training with PyTorch 1.6.0 or latest, or by installing the [Apex](https://github.com/NVIDIA/apex) library for previous
-versions. Just add the flag `--fp16` to your command launching one of the scripts mentioned above!
-
-Using mixed precision training usually results in 2x-speedup for training with the same final results:
-
-| Task  | Metric                       | Result      | Training time | Result (FP16) | Training time (FP16) |
-|-------|------------------------------|-------------|---------------|---------------|----------------------|
-| CoLA  | Matthews corr                | 56.53       | 3:17          | 56.78         | 1:41                 |
-| SST-2 | Accuracy                     | 92.32       | 26:06         | 91.74         | 13:11                |
-| MRPC  | F1/Accuracy                  | 88.85/84.07 | 2:21          | 88.12/83.58   | 1:10                 |
-| STS-B | Pearson/Spearman corr.       | 88.64/88.48 | 2:13          | 88.71/88.55   | 1:08                 |
-| QQP   | Accuracy/F1                  | 90.71/87.49 | 2:22:26       | 90.67/87.43   | 1:11:54              |
-| MNLI  | Matched acc./Mismatched acc. | 83.91/84.10 | 2:35:23       | 84.04/84.06   | 1:17:06              |
-| QNLI  | Accuracy                     | 90.66       | 40:57         | 90.96         | 20:16                |
-| RTE   | Accuracy                     | 65.70       | 57            | 65.34         | 29                   |
-| WNLI  | Accuracy                     | 56.34       | 24            | 56.34         | 12                   |
-
-
-## PyTorch version, no Trainer
-
-Based on the script [`run_glue_no_trainer.py`](https://github.com/huggingface/transformers/blob/main/examples/pytorch/text-classification/run_glue_no_trainer.py).
-
-Like `run_glue.py`, this script allows you to fine-tune any of the models on the [hub](https://huggingface.co/models) on a
-text classification task, either a GLUE task or your own data in a csv or a JSON file. The main difference is that this
-script exposes the bare training loop, to allow you to quickly experiment and add any customization you would like.
-
-It offers less options than the script with `Trainer` (for instance you can easily change the options for the optimizer
-or the dataloaders directly in the script) but still run in a distributed setup, on TPU and supports mixed precision by
-the mean of the [🤗 `Accelerate`](https://github.com/huggingface/accelerate) library. You can use the script normally
-after installing it:
-
-```bash
-pip install git+https://github.com/huggingface/accelerate
-```
-
-then
-
-```bash
-export TASK_NAME=mrpc
-
-python run_glue_no_trainer.py \
-  --model_name_or_path bert-base-cased \
-  --task_name $TASK_NAME \
-  --max_length 128 \
-  --per_device_train_batch_size 32 \
-  --learning_rate 2e-5 \
-  --num_train_epochs 3 \
-  --output_dir /tmp/$TASK_NAME/
-```
-
-You can then use your usual launchers to run in it in a distributed environment, but the easiest way is to run
-
-```bash
-accelerate config
-```
-
-and reply to the questions asked. Then
-
-```bash
-accelerate test
-```
-
-that will check everything is ready for training. Finally, you can launch training with
-
-```bash
-export TASK_NAME=mrpc
-
-accelerate launch run_glue_no_trainer.py \
-  --model_name_or_path bert-base-cased \
-  --task_name $TASK_NAME \
-  --max_length 128 \
-  --per_device_train_batch_size 32 \
-  --learning_rate 2e-5 \
-  --num_train_epochs 3 \
-  --output_dir /tmp/$TASK_NAME/
-```
-
-This command is the same and will work for:
-
-- a CPU-only setup
-- a setup with one GPU
-- a distributed training with several GPUs (single or multi node)
-- a training on TPUs
-
-Note that this library is in alpha release so your feedback is more than welcome if you encounter any problem using it.
-
-## XNLI
-
-Based on the script [`run_xnli.py`](https://github.com/huggingface/transformers/examples/pytorch/text-classification/run_xnli.py).
-
-[XNLI](https://www.nyu.edu/projects/bowman/xnli/) is a crowd-sourced dataset based on [MultiNLI](http://www.nyu.edu/projects/bowman/multinli/). It is an evaluation benchmark for cross-lingual text representations. Pairs of text are labeled with textual entailment annotations for 15 different languages (including both high-resource language such as English and low-resource languages such as Swahili).
-
-#### Fine-tuning on XNLI
-
-This example code fine-tunes mBERT (multi-lingual BERT) on the XNLI dataset. It runs in 106 mins on a single tesla V100 16GB.
-
-```bash
-python run_xnli.py \
-  --model_name_or_path bert-base-multilingual-cased \
-  --language de \
-  --train_language en \
-  --do_train \
-  --do_eval \
-  --per_device_train_batch_size 32 \
-  --learning_rate 5e-5 \
-  --num_train_epochs 2.0 \
-  --max_seq_length 128 \
-  --output_dir /tmp/debug_xnli/ \
-  --save_steps -1
-```
-
-Training with the previously defined hyper-parameters yields the following results on the **test** set:
-
-```bash
-acc = 0.7093812375249501
-```
